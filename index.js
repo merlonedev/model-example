@@ -6,7 +6,11 @@ const Author = require('./models/Author');
 
 const Books = require('./models/Book');
 
+const bodyParser = require('body-parser');
+
 const app = express();
+
+app.use(bodyParser.json());
 
 app.get('/authors', async (_req, res) => {
   const authors = await Author.getAll();
@@ -29,6 +33,15 @@ app.get('/books', async (_req, res) => {
 
   res.status(200).json(books);
 });
+
+app.post('/books', async (req, res) => {
+  try {
+    await Books.addNewBook(req.body);
+    res.status(201).json({ message: 'Book added' });
+  } catch (e) {
+    res.status(500).json({ message: e.message })
+  }
+})
 
 app.get('/books/:id', async (req, res) => {
   const { id } = req.params;
