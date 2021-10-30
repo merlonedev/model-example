@@ -4,7 +4,7 @@ const express = require('express');
 
 const Author = require('./models/Author');
 
-const Books = require('./models/Book');
+const Books = require('./models/Books');
 
 const bodyParser = require('body-parser');
 
@@ -35,9 +35,16 @@ app.get('/books', async (_req, res) => {
 });
 
 app.post('/books', async (req, res) => {
+  const authors = await Author.getAll();
+  const { authorId } = req.body;
+  const validAuthor = authors.find((a) => a.id === parseInt(authorId, 10));
   try {
-    await Books.addNewBook(req.body);
-    res.status(201).json({ message: 'Book added' });
+    if (!validAuthor) {
+      res.status(400).json({ message: "Author not found." });
+    } else {
+      await Books.addNewBook(req.body);
+      res.status(201).json({ message: 'Book added' });
+    }
   } catch (e) {
     res.status(500).json({ message: e.message })
   }
