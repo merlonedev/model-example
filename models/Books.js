@@ -2,21 +2,20 @@ const connection = require('./connection');
 
 const { ObjectId } = require('mongodb');
 
-function serialize(bookData) {
-  return {
-    id: bookData.id,
-    authorId: bookData.author_id,
-    title: bookData.title,
-  }
-}
+const serialize = (bookData) => ({
+  id: bookData._id,
+  title: bookData.title,
+  authorId: bookData.author_id
+});
 
 async function getAll() {
   return connection()
-    .then((db) => db.collection('books').find().toArray());
+    .then((db) => db.collection('books').find().toArray()
+      .then((books) => books.map(serialize)));
 }
 
 async function findById(id) {
-  if(!ObjectId.isValid(id)) {
+  if (!ObjectId.isValid(id)) {
     return null;
   }
 
@@ -28,28 +27,31 @@ async function findById(id) {
   return bookData;
 }
 
-async function findByAuthorId(authorId) {
-  const query = 'SELECT * FROM model_example.books WHERE author_id = ?';
+// async function findByAuthorId(authorId) {
+//   const books = await connection()
+//     .then((db) => db.collection('books')
+//       .find({}, { id: authorId }));
 
-  const [booksData] = await connection.execute(query, [authorId]);
+//   if (!books) return null;
 
-  if (!booksData.length) {
-    return null;
-  }
+//   return books;
+// }
 
-  return booksData.map(serialize);
-}
+// async function addNewBook(bookData) {
+//   const { title, authorId } = bookData;
+//   const query = 'INSERT INTO model_example.books (title, author_id) VALUES (?, ?);';
 
-async function addNewBook(bookData) {
-  const { title, authorId } = bookData;
-  const query = 'INSERT INTO model_example.books (title, author_id) VALUES (?, ?);';
+//   connection.execute(query, [title, authorId]);
+// }
 
-  connection.execute(query, [title, authorId]);
+async function addNewBook({ title, authorId }) {
+  return connection()
+    .then((db) => db.collection('books').insertOne({ title, authorId }))
 }
 
 module.exports = {
   getAll,
   findById,
-  findByAuthorId,
+  // findByAuthorId,
   addNewBook,
 }
