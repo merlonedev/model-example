@@ -1,54 +1,57 @@
 const connection = require('./connection');
 
-function serialize(bookData) {
-  return {
-    id: bookData.id,
-    authorId: bookData.author_id,
-    title: bookData.title,
-  }
-}
+const { ObjectId } = require('mongodb');
+
+const serialize = (bookData) => ({
+  id: bookData._id,
+  title: bookData.title,
+  authorId: bookData.author_id
+});
 
 async function getAll() {
-  const [books] = await connection.execute(
-    'SELECT author_id, title FROM model_example.books;'
-  );
-  return books.map(serialize);
+  return connection()
+    .then((db) => db.collection('books').find().toArray()
+      .then((books) => books.map(serialize)));
 }
 
 async function findById(id) {
-  const query = 'SELECT * FROM model_example.books WHERE id = ?';
-
-  const [bookData] = await connection.execute(query, [id]);
-
-  if (!bookData.length) {
+  if (!ObjectId.isValid(id)) {
     return null;
   }
 
-  return serialize(bookData[0]);
+  const bookData = await connection()
+    .then((db) => db.collection('books').findOne(new ObjectId(id)));
+
+  if (!bookData) return null;
+
+  return bookData;
 }
 
-async function findByAuthorId(authorId) {
-  const query = 'SELECT * FROM model_example.books WHERE author_id = ?';
+// async function findByAuthorId(authorId) {
+//   const books = await connection()
+//     .then((db) => db.collection('books')
+//       .find({}, { id: authorId }));
 
-  const [booksData] = await connection.execute(query, [authorId]);
+//   if (!books) return null;
 
-  if (!booksData.length) {
-    return null;
-  }
+//   return books;
+// }
 
-  return booksData.map(serialize);
-}
+// async function addNewBook(bookData) {
+//   const { title, authorId } = bookData;
+//   const query = 'INSERT INTO model_example.books (title, author_id) VALUES (?, ?);';
 
-async function addNewBook(bookData) {
-  const { title, authorId } = bookData;
-  const query = 'INSERT INTO model_example.books (title, author_id) VALUES (?, ?);';
+//   connection.execute(query, [title, authorId]);
+// }
 
-  connection.execute(query, [title, authorId]);
+async function addNewBook({ title, authorId }) {
+  return connection()
+    .then((db) => db.collection('books').insertOne({ title, authorId }))
 }
 
 module.exports = {
   getAll,
   findById,
-  findByAuthorId,
+  // findByAuthorId,
   addNewBook,
 }
